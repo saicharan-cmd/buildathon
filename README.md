@@ -1,69 +1,65 @@
-# Buildathon — Streamlit-only app (local only)
+# Buildathon — Hyderabad full stack (FastAPI + PostgreSQL + YOLOv8 + EasyOCR)
 
-One app, one command. No Postgres, no FastAPI / uvicorn, no second
-terminal, no `.env`. Just clone, install, run Streamlit — the app
-creates its own SQLite database (`buildathon.db`), seeds the 11
-cameras and a few labelled demo detections, and downloads the plate
-model (~6 MB) the first time you use the camera page.
+Branch: `feature/full-stack-hyd` — everything here is on that branch.
+Hyderabad only. No other city, no other cameras.
 
-## First time (Windows + VS Code)
+Live backend: not deployed from this branch yet — run it on your
+laptop first (see [`SETUP.md`](SETUP.md)). The Render deploy files
+are included in `anpr-backend/` (`requirements-render.txt` and the
+`DATABASE_URL` fix in `app/database.py`) for later.
 
-Install once: Python 3.12 (tick "Add python to PATH") and Git.
-In VS Code, open a terminal (Terminal menu > New Terminal).
+Cameras: 8, all Hyderabad (Telangana), TS plates. 7 online, 1 offline
+(HYD03 Kukatpally).
 
-```powershell
-git clone https://github.com/saicharan-cmd/buildathon.git
-cd buildathon
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
-streamlit run app.py
+| Camera | Area | Status |
+| --- | --- | --- |
+| HYD01 | Hitech City | online |
+| HYD02 | Gachibowli | online |
+| HYD03 | Kukatpally | offline |
+| HYD04 | Banjara Hills | online |
+| HYD05 | Begumpet | online |
+| HYD06 | Secunderabad | online |
+| HYD07 | Charminar | online |
+| HYD08 | LB Nagar | online |
+
+Sample data: the seed script (`python -m app.seed_sample`) adds
+sample detections for Hyderabad plates only — `TS09EX1234`,
+`TS08AB7777` (stolen, creates an alert), `TS10AB1234`, `TS11CD5678`,
+`TS07XY9999`, `TS13PQ2468`, `TS15MN1357` — labelled as sample. It
+only runs when the detections table is empty, so it never duplicates.
+
+## Layout
+
+- `anpr-backend/` — FastAPI app in `app/`, pipeline in
+  `app/yolo_pipeline.py`, seed script in `app/seed_sample.py`,
+  setup and run docs in `README.md` and `PIPELINE.md`,
+  dependencies in `requirements.txt`.
+- `dashboard/dashboard.html` — the dashboard: one static file, no
+  build step. Hyderabad only, 8 cameras with map, stats + hourly
+  chart, "Track any plate" (track + alerts together). Opens against
+  your laptop backend at `http://localhost:8000` by default.
+
+## Quick start
+
+First time on a new laptop? Follow [`SETUP.md`](SETUP.md) — 7 steps,
+Windows / VS Code. Already set up? Just the 2-command rerun:
+
+```bash
+# Terminal 1 — backend (from anpr-backend)
+uvicorn app.main:app --reload
+
+# Terminal 2 — pipeline (from anpr-backend, backend running first)
+python app\yolo_pipeline.py
 ```
 
-Then open http://localhost:8501 in your browser. Leave the terminal
-running while you use the app. Stop it with `Ctrl + C`.
+See [`anpr-backend/README.md`](anpr-backend/README.md) for the backend
+and [`anpr-backend/PIPELINE.md`](anpr-backend/PIPELINE.md) for the
+detection pipeline.
 
-## Every time after this (2 commands)
+## Endpoints (all 14)
 
-```powershell
-venv\Scripts\activate
-streamlit run app.py
-```
-
-## What is in the app
-
-- **Overview** — totals, detections per camera, detections by hour.
-- **Detections** — searchable table (filter by camera / plate).
-  `DEMO` = seeded demo sightings, `CAPTURED` = plates this app read.
-- **Live Capture** — pick a camera, take a photo with your laptop
-  webcam (or upload a photo). YOLOv8 + EasyOCR reads the plate and
-  saves it if it is a valid Indian plate at confidence 0.5 or higher.
-- **Track any plate** — enter any plate, see its track AND its alerts
-  together, across Odisha and Hyderabad.
-- **Cameras** — all 11 cameras (3 Odisha, 8 Hyderabad) with a map.
-- **Alerts** — watchlist. `TS08AB7777` is stolen: any detection of
-  it creates an alert here automatically.
-
-Try these plates: `TS09EX1234`, `TS08AB7777`, `OD02AB1234`.
-
-## If something fails
-
-- `pip install ultralytics` stalls — it is downloading the CUDA
-  torch wheel. Cancel it, install CPU torch first, then install
-  again:
-  ```powershell
-  pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-  pip install -r requirements.txt
-  ```
-- First camera use is slow — the model downloads once (~6 MB), then
-  EasyOCR starts (about 20–30 seconds the first time). That is
-  normal. After that, each photo takes a few seconds.
-- `No plate found` on a photo — hold the plate closer, straight on,
-  in good light. Small, angled or blurry plates are often missed;
-  that is a limit of the model, not a crash. The app shows the raw
-  OCR read so you can see what it saw.
-- `streamlit: command not found` — you are not in the venv. Run
-  `venv\Scripts\activate` first (from the `buildathon` folder).
-- To start fresh, delete `buildathon.db` and run the app again —
-  it re-creates and re-seeds itself. Never commit `buildathon.db`
-  or `models/*.pt` (both are gitignored).
+Detections: `POST /api/detections`, `GET /api/detections`,
+`GET /api/detections/{event_id}`. Cameras: `GET /api/cameras`,
+`GET /api/cameras/{camera_id}`. Analytics: `GET /api/analytics/summary`,
+`/hourly`, `/daily`, `/cameras`. Vehicle: `GET /api/vehicles/{plate_text}/trajectory`.
+Alerts: `POST /api/alerts`, `GET /api/alerts`, `PATCH /api/alerts/{alert_id}`.
