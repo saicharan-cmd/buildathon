@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.pytest_cache/
+.coverage
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Local config and secrets — never commit
+.env
+
+# YOLO weights (large, not in the repo) and local data
+*.pt
+models/
+buildathon.db
+*.db
+*.sqlite3
+failed_detections.jsonl
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
