@@ -6,11 +6,6 @@ creates its own SQLite database (`buildathon.db`), seeds the 11
 cameras and a few labelled demo detections, and downloads the plate
 model (~6 MB) the first time you use the camera page.
 
-Local only: detections saved here stay on this laptop. They do NOT
-sync to any live database. The full FastAPI + PostgreSQL backend and
-the HTML dashboard live in a separate repo
-(laxmiprasanna188/flowsense-ai) — this repo is Streamlit-only.
-
 ## First time (Windows + VS Code)
 
 Install once: Python 3.12 (tick "Add python to PATH") and Git.
