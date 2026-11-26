@@ -1,4 +1,4 @@
-# Buildathon backend — FastAPI + PostgreSQL (Hyderabad only)
+# Buildathon backend — FastAPI + PostgreSQL
 
 Stores number-plate detections from the YOLOv8 + EasyOCR pipeline
 (see `PIPELINE.md`) in PostgreSQL. Eight hardcoded Hyderabad
@@ -9,7 +9,7 @@ HYD07 Charminar, HYD08 LB Nagar (all online except HYD03).
 (`telangana`) and `status`.
 
 Sample data: `python -m app.seed_sample` adds sample detections for
-Hyderabad plates only (`TS09EX1234`, `TS08AB7777` stolen,
+Hyderabad plates (`TS09EX1234`, `TS08AB7777` stolen,
 `TS10AB1234`, `TS11CD5678`, `TS07XY9999`, `TS13PQ2468`,
 `TS15MN1357`) plus a stolen-vehicle alert for `TS08AB7777`. It only
 runs when the detections table is empty.
