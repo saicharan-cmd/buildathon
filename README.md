@@ -1,6 +1,6 @@
-# Buildathon — Hyderabad full stack
+# Buildathon
 
-Hyderabad-only ANPR: FastAPI + PostgreSQL + YOLOv8 + EasyOCR.
+ANPR: FastAPI + PostgreSQL + YOLOv8 + EasyOCR.
 
 8 cameras: HYD01 Hitech City, HYD02 Gachibowli, HYD03 Kukatpally (offline), HYD04 Banjara Hills, HYD05 Begumpet, HYD06 Secunderabad, HYD07 Charminar, HYD08 LB Nagar.
 
