@@ -1,7 +1,6 @@
 # Buildathon — YOLOv8 + EasyOCR + OpenCV pipeline
 
-Adds camera/video plate detection to the Buildathon FastAPI backend
-(branch `feature/full-stack-hyd`). Hyderabad cameras only
+Adds camera/video plate detection to the Buildathon FastAPI backend. Hyderabad cameras
 (HYD01-HYD08), and it talks to this repo's PostgreSQL backend.
 
 ## What it does — the 7 steps
