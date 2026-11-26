@@ -1,4 +1,4 @@
-# Hardcoded cameras. Telangana, TS plates.
+# Hardcoded cameras. Hyderabad only (Telangana), TS plates.
 # An offline camera is still a known camera: POST /api/detections
 # accepts it, it just happens to be offline right now.
 cameras = [

@@ -1,6 +1,6 @@
-# Buildathon — first-time setup (7 steps, Windows + VS Code)
+# Buildathon — Hyderabad full stack, first-time setup (7 steps, Windows + VS Code)
 
-8 cameras (HYD01–HYD08), TS plates.
+Hyderabad only: 8 cameras (HYD01–HYD08), TS plates.
 
 Paste every command as-is, unless a step says **type** — pasting a
 password does not work, the characters are hidden while you type.
@@ -77,7 +77,7 @@ python -m app.seed_sample
 
 `test_db` must print OK / exit 0. If it says `DATABASE_URL is
 missing`, you are not in the `anpr-backend` folder. `seed_sample`
-adds sample detections for Hyderabad plates — `TS09EX1234`,
+adds sample detections for Hyderabad plates only — `TS09EX1234`,
 `TS08AB7777` (stolen, makes an alert), `TS10AB1234`, `TS11CD5678`,
 `TS07XY9999`, `TS13PQ2468`, `TS15MN1357` — and only runs when the
 detections table is empty, so running it twice adds nothing.
@@ -121,7 +121,8 @@ http://127.0.0.1:8000/api/detections?limit=5 in your browser.
 
 Double-click `dashboard\dashboard.html` in the repo. Tap **Connect to
 backend** — it tries your laptop backend at `http://localhost:8000`
-(make sure Step 5 is still running). The dashboard: 8 cameras, stats + hourly chart, and **Track any plate** shows
+(make sure Step 5 is still running). The dashboard is Hyderabad
+only: 8 cameras, stats + hourly chart, and **Track any plate** shows
 that plate's track and its alerts together. Try `TS09EX1234` and
 `TS08AB7777` (stolen — it has an alert).
 
