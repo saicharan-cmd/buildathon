@@ -7,7 +7,7 @@ Run once from anpr-backend:
 Only runs when the detections table is empty, so running it twice
 adds nothing. Every row here is labelled sample: the same 14
 sightings the dashboard shows in its sample feed, for Hyderabad
-plates only — TS09EX1234, TS08AB7777 (stolen), TS10AB1234,
+plates — TS09EX1234, TS08AB7777 (stolen), TS10AB1234,
 TS11CD5678, TS07XY9999, TS13PQ2468, TS15MN1357. No other plates.
 Timestamps are spread over the last ~6 hours (IST), newest 40
 minutes ago: all today so the hourly chart shows them, and all
