@@ -4,6 +4,7 @@ __pycache__/
 *.so
 .pytest_cache/
 .coverage
+htmlcov/
 
 # Virtual environments
 venv/
@@ -13,13 +14,11 @@ ENV/
 
 # Local config and secrets — never commit
 .env
+.envrc
 
-# YOLO weights (large, not in the repo) and local data
+# YOLO weights (large, not in the repo) and local pipeline logs
 *.pt
 models/
-buildathon.db
-*.db
-*.sqlite3
 failed_detections.jsonl
 
 # Editors / OS

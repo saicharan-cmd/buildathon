@@ -1,0 +1,1199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<script id="hatch-space-target">
+    (() => {
+      const params = new URLSearchParams(location.hash.slice(1));
+      const root = document.documentElement;
+      if (params.get("hatch_target") === "tv") root.dataset.hatchTarget = "tv";
+      const widget = params.get("hatch_view") === "widget";
+      root.dataset.hatchView = widget ? "widget" : "app";
+      if (widget) {
+        root.dataset.hatchWidget = params.get("hatch_widget") || "default";
+        root.dataset.hatchInstance = params.get("hatch_instance") || "";
+        const sizes = ["small", "medium", "large", "watch", "watch_round"];
+        root.dataset.hatchSize = sizes.includes(params.get("hatch_size")) ? params.get("hatch_size") : "small";
+        const style = document.createElement("style");
+        style.textContent = 'html[data-hatch-view="widget"], html[data-hatch-view="widget"] body { background: transparent; }';
+        document.head.prepend(style);
+      }
+    })();
+  </script>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Detections Dashboard — Buildathon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#f4f5f3;
+    --surface:#ffffff;
+    --surface-2:#eef0ec;
+    --ink:#17201c;
+    --ink-2:#4c5a53;
+    --ink-3:#7d8a83;
+    --line:#dde2dc;
+    --teal:#0e7a5f;
+    --teal-soft:#e2f2ec;
+    --amber:#b45309;
+    --amber-soft:#fdf0dd;
+    --red:#b3372f;
+    --red-soft:#fbe9e7;
+    --plate-bg:#fdfdf8;
+    --plate-ink:#14181a;
+    --plate-line:#2a2f33;
+    --shadow:0 1px 2px rgba(23,32,28,.05),0 4px 14px rgba(23,32,28,.05);
+    --radius:14px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#10140f;
+      --surface:#1a2019;
+      --surface-2:#232b22;
+      --ink:#eef2ec;
+      --ink-2:#b3beb2;
+      --ink-3:#849184;
+      --line:#2e382e;
+      --teal:#3ec79f;
+      --teal-soft:#17352b;
+      --amber:#e8a34c;
+      --amber-soft:#3a2c14;
+      --red:#e07a6e;
+      --red-soft:#3c201c;
+      --plate-bg:#f4f4ea;
+      --plate-ink:#14181a;
+      --plate-line:#10130f;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25);
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+    background:var(--bg);color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    line-height:1.45;
+  }
+  button,[role="button"],select,summary,input:not([type="checkbox"],[type="radio"]){min-height:2.25rem}
+  .mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,monospace}
+
+  /* ---------- layout ---------- */
+  .wrap{max-width:1180px;margin:0 auto;padding:20px 16px 40px}
+  @media (min-width:760px){.wrap{padding:28px 24px 48px}}
+
+  /* ---------- header ---------- */
+  header.top{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px 20px;margin-bottom:20px}
+  header.top .title-block{flex:1 1 260px;min-width:0}
+  h1{font-size:clamp(24px,4.5vw,34px);font-weight:800;letter-spacing:-.02em;margin:0 0 4px}
+  .subtitle{color:var(--ink-2);font-size:15px;margin:0}
+  .subtitle .mono{font-size:13.5px}
+  .top-meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .pill{display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--line);
+    border-radius:999px;padding:7px 13px;font-size:13px;font-weight:600;color:var(--ink-2);box-shadow:var(--shadow)}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none}
+  .dot.on{background:var(--teal)}
+  .dot.off{background:var(--red)}
+  .dot.pulse{background:var(--teal);animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(14,122,95,.35)}50%{box-shadow:0 0 0 5px rgba(14,122,95,0)}}
+  @media (prefers-reduced-motion: reduce){.dot.pulse{animation:none}}
+
+  /* ---------- region switcher — tappable city cards ---------- */
+  .region-bar{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);margin-bottom:16px}
+  .region-bar-top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:6px 16px;margin-bottom:14px}
+  .region-bar-top .region-copy{min-width:0}
+  .region-bar-top .region-copy strong{display:block;font-size:16px;letter-spacing:-.01em}
+  .region-bar-top .region-copy span{display:block;font-size:13.5px;color:var(--ink-2);margin-top:2px;max-width:56ch}
+  .region-live{font-size:12px;font-weight:700;color:var(--ink-3);white-space:nowrap;display:flex;align-items:center;gap:6px}
+  .region-switch{display:grid;grid-template-columns:1fr;gap:12px}
+  @media (max-width:560px){.region-switch{gap:10px}.region-option{padding:14px 14px 13px}.region-city{font-size:19px !important}}
+  .region-option{position:relative;text-align:left;background:var(--surface-2);border:1.5px solid transparent;border-radius:12px;padding:16px 16px 14px;cursor:pointer;font:inherit;color:var(--ink);display:flex;flex-direction:column;gap:2px;transition:border-color .15s ease,background .15s ease,transform .15s ease;min-height:118px}
+  .region-option:hover{border-color:var(--line);background:var(--surface)}
+  .region-option:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+  .region-option[aria-pressed="true"]{background:var(--teal-soft);border-color:var(--teal)}
+  .region-option[aria-pressed="true"]:hover{background:var(--teal-soft)}
+  .region-option-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .region-state{font-size:11.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+  .region-option[aria-pressed="true"] .region-state{color:var(--teal)}
+  .region-check{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);display:grid;place-items:center;flex:none;color:transparent;font-size:13px;line-height:1}
+  .region-option[aria-pressed="true"] .region-check{background:var(--teal);border-color:var(--teal);color:#fff}
+  @media (prefers-color-scheme: dark){.region-option[aria-pressed="true"] .region-check{color:#10140f}}
+  .region-city{font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.1;margin-top:4px}
+  .region-meta{font-size:13px;color:var(--ink-2);margin-top:4px;line-height:1.35}
+  .region-foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-top:10px}
+  .plate-badge{font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:700;letter-spacing:.06em;background:var(--plate-bg);color:var(--plate-ink);border:1.5px solid var(--plate-line);border-radius:5px;padding:2px 6px}
+  .cam-badge{font-size:12px;font-weight:700;color:var(--ink-2);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px 8px}
+  .region-option[aria-pressed="true"] .cam-badge{background:var(--surface);border-color:transparent;box-shadow:0 0 0 1px rgba(14,122,95,.18)}
+  @media (prefers-reduced-motion: reduce){.region-option{transition:none}}
+
+  /* ---------- stat cards ---------- */
+  .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px}
+  @media (min-width:760px){.stats{grid-template-columns:repeat(4,1fr);gap:14px}}
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+  .stat .label{font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin:0 0 6px}
+  .stat .value{font-size:32px;font-weight:800;letter-spacing:-.02em;line-height:1.05;margin:0}
+  .stat .value small{font-size:16px;font-weight:700;color:var(--ink-3)}
+  .stat .note{font-size:13px;color:var(--ink-2);margin:6px 0 0}
+
+  /* ---------- controls ---------- */
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+  .search{flex:1 1 220px;position:relative}
+  .search input{width:100%;padding:10px 14px 10px 40px;border:1px solid var(--line);border-radius:10px;
+    background:var(--surface);color:var(--ink);font:inherit;font-size:15px;min-height:44px}
+  .search input:focus{outline:2px solid var(--teal);outline-offset:1px;border-color:transparent}
+  .search svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--ink-3);pointer-events:none}
+  .pills{display:flex;flex-wrap:wrap;gap:8px}
+  .pills button{border:1px solid var(--line);background:var(--surface);color:var(--ink-2);border-radius:999px;
+    padding:8px 15px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;min-height:40px}
+  .pills button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .pills button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+
+  /* ---------- main grid ---------- */
+  .grid{display:grid;grid-template-columns:1fr;gap:16px;align-items:start}
+  @media (min-width:960px){.grid{grid-template-columns:minmax(0,1fr) 330px}}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .panel-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:16px 18px 10px}
+  .panel-head h2{font-size:17px;font-weight:800;margin:0;letter-spacing:-.01em}
+  .panel-head .count{font-size:13px;color:var(--ink-3);font-weight:600;white-space:nowrap}
+  .side{display:grid;gap:16px}
+
+  /* ---------- detection rows ---------- */
+  .rows{list-style:none;margin:0;padding:6px 10px 12px}
+  .row{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;padding:13px 8px;border-top:1px solid var(--line);cursor:pointer;border-radius:8px}
+  .row:first-child{border-top:none}
+  .row:hover{background:var(--surface-2)}
+  .row:focus-visible{outline:2px solid var(--teal);outline-offset:-2px}
+  .plate{display:inline-flex;align-items:stretch;background:var(--plate-bg);color:var(--plate-ink);
+    border:2px solid var(--plate-line);border-radius:7px;overflow:hidden;height:fit-content}
+  .plate .ind{background:#22409a;color:#fff;font-size:8.5px;font-weight:700;display:flex;align-items:center;padding:0 4px;letter-spacing:.03em}
+  .plate .num{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:15.5px;letter-spacing:.06em;padding:5px 9px 5px 7px;white-space:nowrap}
+  .row-main{min-width:0}
+  .row-line1{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+  .cam-name{font-weight:700;font-size:14.5px}
+  .cam-id{font-size:12px;color:var(--ink-3);font-weight:600}
+  .time{margin-left:auto;font-size:13px;color:var(--ink-2);font-weight:600;white-space:nowrap}
+  .row-line2{display:flex;align-items:center;gap:10px;margin-top:7px}
+  .conf-bar{flex:1;height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden;min-width:60px}
+  .conf-fill{height:100%;border-radius:99px;background:var(--teal)}
+  .conf-fill.mid{background:var(--amber)}
+  .conf-pct{font-size:13px;font-weight:700;white-space:nowrap}
+  .conf-pct small{color:var(--ink-3);font-weight:600}
+  .row-detail{display:none;grid-column:1 / -1;background:var(--surface-2);border-radius:10px;padding:12px 14px;margin-top:4px}
+  .row.open .row-detail{display:block}
+  .row-detail dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px 16px;margin:0}
+  .row-detail dt{font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
+  .row-detail dd{margin:2px 0 0;font-size:14px;font-weight:600}
+  .empty{padding:34px 18px;text-align:center;color:var(--ink-2)}
+  .empty strong{display:block;font-size:16px;color:var(--ink);margin-bottom:4px}
+  .list-foot{padding:0 18px 16px;font-size:13px;color:var(--ink-3)}
+
+  /* ---------- cameras ---------- */
+  .cam-list{list-style:none;margin:0;padding:4px 18px 16px;display:grid;gap:10px}
+  .cam{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:13px 14px}
+  .cam .dot{margin-top:5px}
+  .cam .info{flex:1;min-width:0}
+  .cam .name{font-weight:700;font-size:15px;margin:0}
+  .cam .loc{font-size:13px;color:var(--ink-2);margin:1px 0 0}
+  .cam .meta{font-size:12.5px;color:var(--ink-3);margin:5px 0 0}
+  .badge{font-size:11.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:4px 9px;border-radius:999px;white-space:nowrap}
+  .badge.on{background:var(--teal-soft);color:var(--teal)}
+  .badge.off{background:var(--red-soft);color:var(--red)}
+
+  /* ---------- chart ---------- */
+  .chart-box{padding:6px 18px 16px}
+  .chart-box svg{width:100%;height:auto;display:block}
+  .chart-note{font-size:12.5px;color:var(--ink-3);margin:8px 0 0}
+  .axis-label{font-size:10.5px;fill:var(--ink-3);font-family:"Plus Jakarta Sans",sans-serif;font-weight:600}
+  .bar{fill:var(--teal)}
+  .bar.peak{fill:var(--amber)}
+  .bar-val{font-size:11px;fill:var(--ink);font-family:"JetBrains Mono",monospace;font-weight:700}
+  .gridline{stroke:var(--line);stroke-width:1}
+
+  .how{padding:4px 18px 18px;font-size:13.5px;color:var(--ink-2)}
+  .how p{margin:0 0 8px}
+  .how p:last-child{margin-bottom:0}
+  .how .mono{font-size:12.5px;background:var(--surface-2);padding:1px 6px;border-radius:5px;color:var(--ink)}
+
+  /* ---------- backend connection ---------- */
+  .api-bar{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);margin-bottom:16px}
+  .api-bar-top{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-start;justify-content:space-between}
+  .api-bar h2{font-size:16px;margin:0;letter-spacing:-.01em}
+  .api-bar p{margin:4px 0 0;color:var(--ink-2);font-size:13.5px;max-width:68ch}
+  .api-bar p .mono{font-size:12px;background:var(--surface-2);padding:1px 5px;border-radius:5px}
+  .api-status{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:800;padding:6px 11px;border-radius:999px;white-space:nowrap}
+  .api-status.live{background:var(--teal-soft);color:var(--teal)}
+  .api-status.sample{background:var(--amber-soft);color:var(--amber)}
+  .api-status.trying{background:var(--surface-2);color:var(--ink-2)}
+  .api-controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+  .api-controls input{flex:1 1 260px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;font-size:14px;min-height:44px}
+  .api-controls input:focus{outline:2px solid var(--teal);outline-offset:1px}
+  .btn{border:1px solid var(--line);background:var(--ink);color:var(--bg);border-radius:10px;padding:10px 16px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;min-height:44px}
+  .btn.secondary{background:var(--surface);color:var(--ink)}
+  .btn:disabled{opacity:.55;cursor:not-allowed}
+  .btn:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+  .api-meta{font-size:12.5px;color:var(--ink-3);margin-top:10px;display:flex;flex-wrap:wrap;gap:4px 14px}
+  .endpoint-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .endpoint-list span{font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:600;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:4px 8px;color:var(--ink-2)}
+  .endpoint-list span.ok{border-color:var(--teal);color:var(--teal);background:var(--teal-soft)}
+  .endpoint-list span.fail{opacity:.65}
+
+  /* ---------- trajectory & alerts ---------- */
+  .traj-box{padding:4px 18px 16px}
+  .traj-form{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+  .traj-form input{flex:1 1 160px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;font-size:14px;min-height:42px;text-transform:uppercase}
+  .traj-steps{list-style:none;margin:0;padding:0}
+  .traj-steps li{display:flex;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+  .traj-steps li:first-child{border-top:none}
+  .traj-dot{width:11px;height:11px;border-radius:50%;background:var(--teal);margin-top:5px;flex:none;box-shadow:0 0 0 3px var(--teal-soft)}
+  .traj-steps .t-main{flex:1;min-width:0}
+  .traj-steps .t-cam{font-weight:700;font-size:14px}
+  .traj-steps .t-sub{font-size:12.5px;color:var(--ink-2)}
+  .traj-steps .t-time{font-size:13px;font-weight:700;white-space:nowrap}
+  .alert-list{list-style:none;margin:0;padding:4px 18px 8px;display:grid;gap:10px}
+  .alert-item{border:1px solid var(--line);border-radius:12px;padding:12px 13px}
+  .alert-item .a-top{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;justify-content:space-between}
+  .alert-item .a-plate{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:14px}
+  .alert-item .a-reason{font-size:13px;color:var(--ink-2);margin:5px 0 0}
+  .alert-item .a-meta{font-size:12px;color:var(--ink-3);margin:4px 0 0}
+  .badge.active{background:var(--red-soft);color:var(--red)}
+  .badge.resolved{background:var(--teal-soft);color:var(--teal)}
+  .alert-form{padding:0 18px 16px;display:grid;gap:8px}
+  .alert-form input,.alert-form select{width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;font-size:14px;min-height:42px}
+  .alert-form .hint{font-size:12.5px;color:var(--ink-3);margin:0}
+  .chart-toggle{display:inline-flex;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px}
+  .chart-toggle button{border:none;background:transparent;color:var(--ink-2);border-radius:999px;padding:5px 12px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;min-height:30px}
+  .chart-toggle button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+  .source-tag{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+  .source-tag.live{color:var(--teal)}
+  .source-tag.sample{color:var(--amber)}
+
+  /* ---------- plate tracker (prominent) ---------- */
+  .tracker{margin-bottom:16px;border-color:var(--teal)}
+  .tracker .panel-head{padding-bottom:4px}
+  .tracker .panel-head h2{font-size:19px}
+  .tracker-sub{padding:0 18px;margin:0;color:var(--ink-2);font-size:13.5px;max-width:72ch}
+  .tracker-body{padding:12px 18px 18px}
+  .track-form{display:flex;flex-wrap:wrap;gap:8px}
+  .track-form input{flex:1 1 220px;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font-family:"JetBrains Mono",monospace;font-size:16px;font-weight:700;letter-spacing:.05em;min-height:50px;text-transform:uppercase}
+  .track-form input:focus{outline:2px solid var(--teal);outline-offset:1px;border-color:transparent}
+  .track-form .btn{min-height:50px;padding:10px 22px;font-size:15px}
+  .track-chips{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;margin-top:10px;font-size:12.5px;color:var(--ink-3);font-weight:600}
+  .track-chips button{border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:999px;padding:5px 11px;font-family:"JetBrains Mono",monospace;font-size:12px;font-weight:700;cursor:pointer;min-height:32px}
+  .track-chips button:hover{border-color:var(--teal);color:var(--teal)}
+  .track-chips button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+  .track-result{margin-top:14px}
+  .track-result:empty{display:none}
+  .track-summary{display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center;background:var(--surface-2);border-radius:12px;padding:14px 16px}
+  .plate.big .num{font-size:19px;padding:7px 12px 7px 9px}
+  .plate.big .ind{font-size:10px;padding:0 5px}
+  .track-stats{display:flex;flex-wrap:wrap;gap:8px 26px;flex:1}
+  .track-stats .ts{min-width:86px}
+  .track-stats .ts b{display:block;font-size:17px;font-weight:800;letter-spacing:-.01em}
+  .track-stats .ts span{font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
+  .route{display:flex;align-items:flex-start;margin:18px 2px 4px;overflow:hidden}
+  .route-node{flex:1 1 0;min-width:0;text-align:center;position:relative;padding:0 4px}
+  .route-node::before{content:"";position:absolute;top:7px;left:-50%;width:100%;height:2px;background:var(--line)}
+  .route-node:first-child::before{display:none}
+  .route-node .r-dot{width:15px;height:15px;border-radius:50%;background:var(--teal);margin:0 auto;position:relative;z-index:1;box-shadow:0 0 0 3px var(--teal-soft)}
+  .route-node.last .r-dot{background:var(--amber);box-shadow:0 0 0 3px var(--amber-soft)}
+  .route-node .r-cam{font-weight:700;font-size:13px;margin-top:8px;line-height:1.25}
+  .route-node .r-time{font-size:12px;color:var(--ink-2);font-weight:600}
+  @media (max-width:560px){.route-node .r-cam{font-size:11.5px}.route-node .r-time{font-size:11px}}
+  .track-note{font-size:13px;color:var(--ink-2);background:var(--amber-soft);border-radius:10px;padding:10px 13px;margin:0 0 12px}
+  .track-note button{margin-left:8px}
+  .track-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .track-actions .btn{min-height:40px;padding:8px 14px;font-size:13.5px}
+  .seen-badge{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:var(--teal-soft);color:var(--teal);white-space:nowrap}
+  .seen-badge.last{background:var(--amber-soft);color:var(--amber)}
+  .match-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .match-list button{border:1.5px solid var(--plate-line);background:var(--plate-bg);color:var(--plate-ink);border-radius:7px;padding:7px 12px;font-family:"JetBrains Mono",monospace;font-size:14px;font-weight:700;letter-spacing:.05em;cursor:pointer;min-height:40px}
+  .match-list button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+  .track-alerts{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
+  .track-alerts h3{font-size:14px;font-weight:800;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+  .track-alerts h3 .count{font-size:12px;color:var(--ink-3);font-weight:600}
+  .track-alerts .alert-list{padding:0}
+  .track-alerts .none{font-size:13.5px;color:var(--ink-2);margin:0}
+
+  footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);color:var(--ink-3);font-size:13px;
+    display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:space-between}
+
+  /* ---------- widget ---------- */
+  #widgetView{display:none}
+  html[data-hatch-view="widget"] #appView{display:none}
+  html[data-hatch-view="widget"] #widgetView{display:flex}
+  #widgetView{flex-direction:column;gap:8px;padding:14px;height:100vh;height:100dvh;overflow:hidden;
+    font-family:"Plus Jakarta Sans",system-ui,sans-serif;color:var(--ink)}
+  #widgetView .w-label{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+  #widgetView .w-big{font-size:44px;font-weight:800;line-height:1;letter-spacing:-.02em}
+  #widgetView .w-big small{font-size:15px;color:var(--ink-3);font-weight:700}
+  #widgetView .w-row{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink-2)}
+  #widgetView .w-latest{margin-top:auto}
+  #widgetView #wLatest{word-break:break-word;overflow-wrap:anywhere;font-size:13px}
+  #widgetView .w-list{display:none;list-style:none;margin:6px 0 0;padding:0}
+  #widgetView .w-list li{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:13.5px}
+  html[data-hatch-size="large"] #widgetView .w-list{display:block}
+  html[data-hatch-size="large"] #widgetView .w-big{font-size:48px}
+  html[data-hatch-size="large"] #widgetView .w-list li{padding:5px 0}
+  html[data-hatch-size="large"] #widgetView{gap:6px}
+  html[data-hatch-size="small"] #widgetView{gap:6px;padding:12px}
+  html[data-hatch-size="small"] #widgetView .w-big{font-size:36px}
+  html[data-hatch-size="small"] #widgetView .w-latest{display:none}
+  html[data-hatch-size="watch"] #widgetView .w-latest,
+  html[data-hatch-size="watch_round"] #widgetView .w-latest{display:none}
+  html[data-hatch-size="medium"] #widgetView{gap:6px;padding:12px 14px}
+  html[data-hatch-size="medium"] #widgetView .w-big{font-size:40px}
+  html[data-hatch-size="medium"] #widgetView .w-latest{margin-top:2px}
+  html[data-hatch-target="tv"] .wrap{max-width:1500px}
+  html[data-hatch-target="tv"] body{font-size:19px}
+  html[data-hatch-target="tv"] h1{font-size:44px}
+</style>
+</head>
+<body>
+
+<!-- ======================= WIDGET ======================= -->
+<section id="widgetView" aria-label="Detections summary">
+  <div class="w-label" id="wRegionLabel">Hyderabad · Detections today · Sample data</div>
+  <div class="w-big"><span id="wTotal">–</span> <small>plates</small></div>
+  <div class="w-row"><span class="dot on"></span><span id="wCams">–</span></div>
+  <ul class="w-list" id="wList"></ul>
+  <div class="w-latest">
+    <div class="w-label">Latest</div>
+    <div class="w-row" style="margin-top:4px"><span class="mono" id="wLatest" style="font-weight:700;color:var(--ink)">–</span></div>
+  </div>
+</section>
+
+<!-- ======================= APP ======================= -->
+<div id="appView">
+  <div class="wrap">
+
+    <header class="top">
+      <div class="title-block">
+        <h1>Detections</h1>
+        <p class="subtitle" id="subtitle">Stats and chart read from the live analytics endpoints when the backend answers. This page tries your laptop backend at http://localhost:8000 first — until it connects, it shows the Hyderabad sample feed so the layout still works. Start the backend with uvicorn app.main:app --reload in anpr-backend, then tap Connect.</p>
+      </div>
+      <div class="top-meta">
+        <span class="pill"><span class="dot" id="sourceDot" style="background:var(--amber)"></span> <span id="sourcePill">Sample data</span></span>
+        <span class="pill"><span class="dot on"></span> <span id="onlinePill">7 of 8 cameras online</span></span>
+      </div>
+    </header>
+
+    <section class="api-bar" aria-label="Backend connection">
+      <div class="api-bar-top">
+        <div>
+          <h2>Live backend — analytics, trajectory &amp; alerts</h2>
+          <p>Live backend is the <span class="mono">feature/full-stack-hyd</span> branch: summary, hourly &amp; daily stats power the cards and chart above the feed; trajectory follows a plate across cameras; alerts load from <span class="mono">GET /api/alerts</span>.</p>
+        </div>
+        <span class="api-status sample" id="apiStatus"><span class="dot" style="background:currentColor"></span> Sample mode</span>
+      </div>
+      <div class="api-controls">
+        <input type="url" id="apiBaseInput" value="http://localhost:8000" aria-label="Backend base URL" spellcheck="false" />
+        <button type="button" class="btn" id="connectBtn">Connect to backend</button>
+        <button type="button" class="btn secondary" id="refreshBtn">Refresh data</button>
+        <button type="button" class="btn secondary" id="sampleBtn">Use sample data</button>
+      </div>
+      <div class="endpoint-list" id="endpointList" aria-label="Endpoints used">
+        <span data-ep="summary">GET /api/analytics/summary</span>
+        <span data-ep="hourly">GET /api/analytics/hourly</span>
+        <span data-ep="daily">GET /api/analytics/daily</span>
+        <span data-ep="cameras">GET /api/analytics/cameras</span>
+        <span data-ep="detections">GET /api/detections</span>
+        <span data-ep="alerts">GET /api/alerts</span>
+      </div>
+      <div class="api-meta">
+        <span id="apiMetaText">Not connected yet. Tap Connect to try your laptop backend at <span class="mono">http://localhost:8000</span> — start it with <span class="mono">uvicorn app.main:app --reload</span> in <span class="mono">anpr-backend</span> first.</span>
+        <span id="apiLastFetch"></span>
+      </div>
+    </section>
+
+    <div class="region-bar" aria-label="Hyderabad">
+      <div class="region-bar-top">
+        <div class="region-copy">
+          <strong id="regionHeading">Telangana — Hyderabad</strong>
+          <span id="regionSub">Showing TS plates from Hitech City, Gachibowli, Secunderabad, Charminar &amp; more.</span>
+        </div>
+        <span class="region-live"><span class="dot pulse" aria-hidden="true"></span> Viewing Hyderabad feed</span>
+      </div>
+      <div class="region-switch" role="group" aria-label="Switch city">
+        <button type="button" class="region-option" data-region="telangana" aria-pressed="true">
+          <span class="region-option-top"><span class="region-state">Telangana</span><span class="region-check" aria-hidden="true">✓</span></span>
+          <span class="region-city">Hyderabad</span>
+          <span class="region-meta">Hitech City · Gachibowli · Charminar &amp; more</span>
+          <span class="region-foot"><span class="plate-badge">TS</span><span class="cam-badge">8 cameras · 7 online</span></span>
+        </button>
+      </div>
+    </div>
+
+    <section class="stats" aria-label="Summary">
+      <div class="stat">
+        <p class="label">Detections today <span class="source-tag sample" id="statSource1">· Sample</span></p>
+        <p class="value" id="statToday">–</p>
+        <p class="note" id="statTodayNote">Across 7 online Hyderabad cameras</p>
+      </div>
+      <div class="stat">
+        <p class="label">Avg. confidence</p>
+        <p class="value" id="statAvg">–</p>
+        <p class="note" id="statAvgNote">From /api/analytics/summary when live · average of YOLO + OCR</p>
+      </div>
+      <div class="stat">
+        <p class="label">High confidence</p>
+        <p class="value" id="statHigh">–</p>
+        <p class="note">Reads at 85% or above</p>
+      </div>
+      <div class="stat">
+        <p class="label" id="statFourthLabel">Duplicates blocked</p>
+        <p class="value" id="statDuplicates">6</p>
+        <p class="note" id="statFourthNote">Same plate + camera within 30s</p>
+      </div>
+    </section>
+
+    <section class="panel tracker" id="trackerPanel" aria-label="Track a plate">
+      <div class="panel-head">
+        <h2>Track any plate</h2>
+        <span class="count" id="trajSource">Sample feed</span>
+      </div>
+      <p class="tracker-sub">Type any plate number — full or partial — and see everywhere it was seen: every camera in order with times, plus any alerts raised for that plate.</p>
+      <div class="tracker-body">
+        <div class="track-form">
+          <input type="text" id="trajInput" placeholder="Enter plate — e.g. TS09EX1234" aria-label="Plate number to track" autocomplete="off" spellcheck="false" />
+          <button type="button" class="btn" id="trajBtn">Track plate</button>
+        </div>
+        <div class="track-chips" id="trackChips"></div>
+        <div class="track-result" id="trajResult"></div>
+      </div>
+    </section>
+
+    <div class="controls">
+      <div class="search">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg>
+        <input type="search" id="searchInput" placeholder="Search a plate — try TS09EX1234" aria-label="Search by plate number" />
+      </div>
+      <div class="pills" id="camPills" role="group" aria-label="Filter by camera"></div>
+    </div>
+
+    <div class="grid">
+      <section class="panel" aria-label="Detection feed">
+        <div class="panel-head">
+          <h2>Detection feed</h2>
+          <span class="count" id="feedCount"></span>
+        </div>
+        <ul class="rows" id="rows"></ul>
+        <div class="empty" id="emptyState" hidden>
+          <strong>No plates match</strong>
+          Try a different plate fragment or camera filter.
+        </div>
+        <p class="list-foot">Newest first. Tap a row for the full record. The pipeline only sends reads at 0.50 confidence or higher.</p>
+      </section>
+
+      <div class="side">
+        <section class="panel" aria-label="Cameras">
+          <div class="panel-head"><h2>Cameras</h2><span class="count" id="camCityLabel">Hyderabad</span></div>
+          <ul class="cam-list" id="camList"></ul>
+        </section>
+
+        <section class="panel" aria-label="Detections by hour">
+          <div class="panel-head"><h2 id="chartTitle">Detections by hour</h2><span class="count" id="chartSource">Sample feed</span></div>
+          <div class="chart-box">
+            <div class="chart-toggle" role="group" aria-label="Chart range" style="margin-bottom:12px">
+              <button type="button" id="chartHourlyBtn" aria-pressed="true">Hourly</button>
+              <button type="button" id="chartDailyBtn" aria-pressed="false">Daily</button>
+            </div>
+            <div id="chart"></div>
+            <p class="chart-note" id="chartNote">Peak highlighted. In live mode this uses GET /api/analytics/hourly (or /daily); in sample mode counts come from the feed on this page.</p>
+          </div>
+        </section>
+
+        <section class="panel" aria-label="Alerts">
+          <div class="panel-head"><h2>Alerts</h2><span class="count" id="alertsCount">Sample</span></div>
+          <ul class="alert-list" id="alertList"></ul>
+          <div class="alert-form">
+            <input type="text" id="alertPlateInput" placeholder="Plate for new alert — e.g. TS09EX1234" aria-label="Plate for new alert" style="text-transform:uppercase" />
+            <input type="text" id="alertReasonInput" placeholder="Reason — e.g. Watchlist / stolen vehicle check" aria-label="Alert reason" />
+            <button type="button" class="btn" id="createAlertBtn">Create alert via POST /api/alerts</button>
+            <p class="hint" id="alertFormHint">Connect to the backend first — creating an alert posts to your local FastAPI server. In sample mode nothing is sent.</p>
+          </div>
+        </section>
+
+        <section class="panel" aria-label="How a detection gets here">
+          <div class="panel-head"><h2>How a detection gets here</h2></div>
+          <div class="how">
+            <p>Camera frames are processed every 5th frame. YOLOv8 finds the plate, EasyOCR reads it, and the two scores combine into one confidence.</p>
+            <p>Valid Indian-format plates at <span class="mono">≥ 0.50</span> are posted to <span class="mono">POST /api/detections</span> and stored in PostgreSQL. A repeat of the same plate at the same camera within 30 seconds returns the existing record instead of saving a copy.</p>
+            <p>Dashboard reads: <span class="mono">GET /api/analytics/summary</span>, <span class="mono">/hourly</span>, <span class="mono">/daily</span>, <span class="mono">/cameras</span> for stats &amp; chart, <span class="mono">GET /api/vehicles/{plate}/trajectory</span> for tracking, and <span class="mono">GET / POST /api/alerts</span> + <span class="mono">PATCH /api/alerts/{id}</span> for alerts.</p>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <footer>
+      <span>Detections dashboard — Hyderabad, Telangana · FastAPI + PostgreSQL · YOLOv8 + EasyOCR · Analytics / trajectory / alerts APIs</span>
+      <span id="footerNote">Sample records dated Wed, 25 Nov 2026 · Tap Connect for live data</span>
+    </footer>
+  </div>
+</div>
+
+<script>
+  // Hyderabad only. The sample feed keeps the same
+  // GET /api/detections record shape.
+  var REGIONS = {
+    telangana: {
+      label: "Telangana — Hyderabad",
+      city: "Hyderabad",
+      regionSub: "Showing TS plates from Hitech City, Gachibowli, Secunderabad, Charminar & more.",
+      statNote: "Across 7 online Hyderabad cameras",
+      duplicates: 4,
+      searchHint: "TS09EX1234",
+      cameras: [
+        { id: "HYD01", name: "Hitech City", area: "Hitech City, Hyderabad", online: true },
+        { id: "HYD02", name: "Gachibowli", area: "Gachibowli, Hyderabad", online: true },
+        { id: "HYD03", name: "Kukatpally", area: "Kukatpally, Hyderabad", online: false },
+        { id: "HYD04", name: "Banjara Hills", area: "Banjara Hills, Hyderabad", online: true },
+        { id: "HYD05", name: "Begumpet", area: "Begumpet, Hyderabad", online: true },
+        { id: "HYD06", name: "Secunderabad", area: "Secunderabad, Hyderabad", online: true },
+        { id: "HYD07", name: "Charminar", area: "Charminar, Hyderabad", online: true },
+        { id: "HYD08", name: "LB Nagar", area: "LB Nagar, Hyderabad", online: true }
+      ],
+      detections: [
+        { event_id: "EVT-HYD014", plate_text: "TS09EX1234", camera_id: "HYD06", confidence: 0.89, time: "19:42", hour: 19 },
+        { event_id: "EVT-HYD013", plate_text: "TS08AB7777", camera_id: "HYD06", confidence: 0.82, time: "19:18", hour: 19 },
+        { event_id: "EVT-HYD012", plate_text: "TS10AB1234", camera_id: "HYD01", confidence: 0.92, time: "18:55", hour: 18 },
+        { event_id: "EVT-HYD011", plate_text: "TS09EX1234", camera_id: "HYD02", confidence: 0.94, time: "18:31", hour: 18 },
+        { event_id: "EVT-HYD010", plate_text: "TS11CD5678", camera_id: "HYD07", confidence: 0.87, time: "17:56", hour: 17 },
+        { event_id: "EVT-HYD009", plate_text: "TS07XY9999", camera_id: "HYD04", confidence: 0.78, time: "17:24", hour: 17 },
+        { event_id: "EVT-HYD008", plate_text: "TS13PQ2468", camera_id: "HYD05", confidence: 0.90, time: "16:48", hour: 16 },
+        { event_id: "EVT-HYD007", plate_text: "TS15MN1357", camera_id: "HYD08", confidence: 0.85, time: "16:12", hour: 16 },
+        { event_id: "EVT-HYD006", plate_text: "TS09EX1234", camera_id: "HYD01", confidence: 0.91, time: "15:39", hour: 15 },
+        { event_id: "EVT-HYD005", plate_text: "TS08AB7777", camera_id: "HYD07", confidence: 0.76, time: "15:05", hour: 15 },
+        { event_id: "EVT-HYD004", plate_text: "TS10AB1234", camera_id: "HYD02", confidence: 0.88, time: "14:33", hour: 14 },
+        { event_id: "EVT-HYD003", plate_text: "TS11CD5678", camera_id: "HYD08", confidence: 0.81, time: "13:58", hour: 13 },
+        { event_id: "EVT-HYD002", plate_text: "TS07XY9999", camera_id: "HYD01", confidence: 0.93, time: "13:21", hour: 13 },
+        { event_id: "EVT-HYD001", plate_text: "TS13PQ2468", camera_id: "HYD06", confidence: 0.84, time: "12:47", hour: 12 }
+      ]
+    }
+  };
+
+  var state = { region: "telangana", cam: "ALL", query: "", chartMode: "hourly" };
+  var live = {
+    base: "http://localhost:8000",
+    connected: false,
+    connecting: false,
+    lastFetch: null,
+    summary: null,
+    hourly: null,
+    daily: null,
+    camAnalytics: null,
+    detections: null,
+    cameras: null,
+    alerts: null,
+    endpointStatus: {},
+    trajectory: null,
+    trajectoryPlate: ""
+  };
+  var SAMPLE_ALERTS = [
+    { id: "sample-1", plate_text: "TS08AB7777", reason: "Stolen vehicle — sample alert, seen at Secunderabad & Charminar", status: "active", created_at: "25 Nov 2026, 15:05 IST" }
+  ];
+
+  function curRegion() { return REGIONS[state.region]; }
+  function isLive() { return live.connected; }
+  function curCameras() {
+    if (isLive() && live.cameras && live.cameras.length) return live.cameras;
+    if (isLive() && live.camAnalytics && live.camAnalytics.length) return live.camAnalytics.map(function(c){ return { id: c.camera_id || c.id, name: c.name || c.camera_id || c.id, area: c.area || c.location || "", online: c.online !== false }; });
+    return curRegion().cameras;
+  }
+  function curDetections() {
+    if (isLive() && live.detections) return live.detections;
+    return curRegion().detections;
+  }
+  function effectiveAlerts() { return isLive() && live.alerts ? live.alerts : SAMPLE_ALERTS; }
+
+  function camById(id) {
+    var cams = curCameras();
+    for (var i = 0; i < cams.length; i++) if (cams[i].id === id) return cams[i];
+    // fall back to sample camera names for live ids
+    var all = REGIONS.telangana.cameras;
+    for (var j = 0; j < all.length; j++) if (all[j].id === id) return all[j];
+    return { id: id, name: id, area: "", online: false };
+  }
+  function pct(c) { return Math.round(c * 100) + "%"; }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (ch) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch];
+    });
+  }
+  function pick(obj, keys) {
+    if (!obj) return undefined;
+    for (var i = 0; i < keys.length; i++) if (obj[keys[i]] !== undefined && obj[keys[i]] !== null) return obj[keys[i]];
+    return undefined;
+  }
+  function asArray(data, keys) {
+    if (Array.isArray(data)) return data;
+    if (!data || typeof data !== "object") return [];
+    if (keys) for (var i = 0; i < keys.length; i++) if (Array.isArray(data[keys[i]])) return data[keys[i]];
+    var common = ["detections","items","results","data","alerts","cameras","hourly","daily","trajectory","sightings","steps"];
+    for (var j = 0; j < common.length; j++) if (Array.isArray(data[common[j]])) return data[common[j]];
+    return [];
+  }
+  function parseTime(ts, fallbackTime, fallbackHour) {
+    if (fallbackTime && fallbackHour !== undefined) return { time: fallbackTime, hour: fallbackHour, label: fallbackTime };
+    if (!ts) return { time: "—", hour: 12, label: "—" };
+    var d = new Date(ts);
+    if (!isNaN(d.getTime())) {
+      var hh = String(d.getHours()).padStart(2,"0"), mm = String(d.getMinutes()).padStart(2,"0");
+      return { time: hh + ":" + mm, hour: d.getHours(), label: d.toLocaleString() };
+    }
+    var s = String(ts);
+    var m = s.match(/(\d{1,2}):(\d{2})/);
+    if (m) return { time: m[0], hour: parseInt(m[1],10), label: s };
+    return { time: s, hour: 12, label: s };
+  }
+  function normalizeDetection(raw, idx) {
+    var plate = pick(raw, ["plate_text","plate","plate_number","text"]) || "UNKNOWN";
+    var cam = pick(raw, ["camera_id","camera","cam_id"]) || "—";
+    var conf = pick(raw, ["confidence","score"]);
+    conf = typeof conf === "number" ? conf : (conf ? parseFloat(conf) : 0);
+    if (conf > 1.5) conf = conf / 100;
+    var ts = pick(raw, ["timestamp","created_at","time","detected_at"]);
+    var pt = parseTime(typeof ts === "string" && /^\d{1,2}:\d{2}/.test(ts) ? null : ts, typeof ts === "string" && /^\d{1,2}:\d{2}/.test(ts) ? ts : null, raw.hour);
+    if (typeof ts === "string" && ts.length > 8 && !/^\d{1,2}:\d{2}$/.test(ts)) pt.label = ts;
+    return {
+      event_id: String(pick(raw, ["event_id","id","detection_id"]) || ("live-" + idx)),
+      plate_text: String(plate).toUpperCase(),
+      camera_id: String(cam),
+      confidence: isNaN(conf) ? 0 : conf,
+      time: pt.time, hour: pt.hour, timestampLabel: pt.label
+    };
+  }
+  function normalizeCamera(raw) {
+    var id = String(pick(raw, ["camera_id","id","cam_id"]) || "—");
+    var status = pick(raw, ["status","online","is_online"]);
+    var online = status === true || status === "online" || status === "active" || (status === undefined);
+    if (status === false || status === "offline" || status === "inactive") online = false;
+    return { id: id, name: String(pick(raw, ["name","camera_name","location"]) || id), area: String(pick(raw, ["area","location","address"]) || ""), online: online, count: pick(raw, ["count","detections","total","detection_count"]) };
+  }
+  function normalizeHourly(data) {
+    var arr = asArray(data);
+    if (arr.length) return arr.map(function(r){
+      if (typeof r === "number") return null;
+      return { hour: parseInt(pick(r, ["hour","h","label"]) || 0, 10), count: Number(pick(r, ["count","total","detections","value"]) || 0), label: pick(r, ["label","hour"]) };
+    }).filter(Boolean);
+    if (data && typeof data === "object") {
+      return Object.keys(data).filter(function(k){ return /^\d+$/.test(k); }).map(function(k){ return { hour: parseInt(k,10), count: Number(data[k]) }; });
+    }
+    return null;
+  }
+  function normalizeDaily(data) {
+    var arr = asArray(data);
+    if (!arr.length) return null;
+    return arr.map(function(r){
+      var d = pick(r, ["date","day","label","created_at"]) || "";
+      return { label: String(d).slice(5) || String(d), full: String(d), count: Number(pick(r, ["count","total","detections","value"]) || 0) };
+    });
+  }
+
+  function filtered() {
+    var q = state.query.replace(/\s+/g, "").toUpperCase();
+    return curDetections().filter(function (d) {
+      if (state.cam !== "ALL" && d.camera_id !== state.cam) return false;
+      if (q && d.plate_text.indexOf(q) === -1) return false;
+      return true;
+    });
+  }
+
+  function renderRows() {
+    var list = filtered();
+    var rowsEl = document.getElementById("rows");
+    document.getElementById("emptyState").hidden = list.length > 0;
+    document.getElementById("feedCount").textContent =
+      "Showing " + list.length + " of " + curDetections().length + " · " + (isLive() ? "Live backend" : curRegion().label);
+    rowsEl.innerHTML = list.map(function (d) {
+      var cam = camById(d.camera_id);
+      var mid = d.confidence < 0.85 ? " mid" : "";
+      var tsLabel = d.timestampLabel ? d.timestampLabel : ("25 Nov 2026, " + d.time + " IST");
+      return '<li class="row" tabindex="0" role="button" aria-expanded="false" data-ev="' + esc(d.event_id) + '" data-plate="' + esc(d.plate_text) + '">' +
+        '<span class="plate" aria-label="Plate ' + esc(d.plate_text) + '"><span class="ind">IND</span><span class="num">' + esc(d.plate_text) + '</span></span>' +
+        '<div class="row-main">' +
+          '<div class="row-line1"><span class="cam-name">' + esc(cam.name) + '</span>' +
+          '<span class="cam-id mono">' + esc(d.camera_id) + '</span>' +
+          '<span class="time">' + esc(d.time) + '</span></div>' +
+          '<div class="row-line2"><div class="conf-bar"><div class="conf-fill' + mid + '" style="width:' + Math.round(d.confidence * 100) + '%"></div></div>' +
+          '<span class="conf-pct">' + pct(d.confidence) + ' <small>confidence</small></span></div>' +
+        '</div>' +
+        '<div class="row-detail"><dl>' +
+          '<div><dt>Event ID</dt><dd class="mono">' + esc(d.event_id) + '</dd></div>' +
+          '<div><dt>Timestamp</dt><dd>' + esc(tsLabel) + '</dd></div>' +
+          '<div><dt>Camera</dt><dd>' + esc(d.camera_id) + ' — ' + esc(cam.area || cam.name) + '</dd></div>' +
+          '<div><dt>Confidence</dt><dd>' + Number(d.confidence).toFixed(2) + ' (threshold 0.50)</dd></div>' +
+          '<div><dt>Trajectory</dt><dd><a href="#" class="traj-link" data-plate="' + esc(d.plate_text) + '">Track this plate →</a></dd></div>' +
+        '</dl></div>' +
+      '</li>';
+    }).join("");
+    var rows = rowsEl.querySelectorAll(".row");
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].addEventListener("click", function(e){
+        if (e.target && e.target.classList && e.target.classList.contains("traj-link")) return;
+        toggleRow.call(this);
+      });
+      rows[i].addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleRow.call(this); }
+      });
+    }
+    rowsEl.querySelectorAll(".traj-link").forEach(function(a){
+      a.addEventListener("click", function(e){ e.preventDefault(); e.stopPropagation(); loadTrajectory(a.getAttribute("data-plate")); });
+    });
+  }
+  function toggleRow() {
+    var open = this.classList.toggle("open");
+    this.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
+  function renderCameras() {
+    document.getElementById("camCityLabel").textContent = isLive() ? "Live backend" : curRegion().city;
+    document.getElementById("camList").innerHTML = curCameras().map(function (c) {
+      var dets = curDetections().filter(function (d) { return d.camera_id === c.id; });
+      var count = (c.count !== undefined && c.count !== null) ? c.count : dets.length;
+      var last = dets[0];
+      var meta = c.online
+        ? count + " detections" + (isLive() ? " (analytics/cameras + feed)" : " today") + (last ? " · last at " + last.time : "")
+        : "No detections — camera offline";
+      return '<li class="cam"><span class="dot ' + (c.online ? "on" : "off") + '"></span>' +
+        '<div class="info"><p class="name">' + esc(c.name) + '</p>' +
+        '<p class="loc">' + esc(c.id) + (c.area ? ' · ' + esc(c.area) : '') + '</p>' +
+        '<p class="meta">' + esc(meta) + '</p></div>' +
+        '<span class="badge ' + (c.online ? "on" : "off") + '">' + (c.online ? "Online" : "Offline") + '</span></li>';
+    }).join("");
+  }
+
+  function renderStats() {
+    var dets = curDetections();
+    var total = dets.length;
+    var avg = total ? dets.reduce(function (s, d) { return s + d.confidence; }, 0) / total : 0;
+    var high = dets.filter(function (d) { return d.confidence >= 0.85; }).length;
+    var s = live.summary || {};
+    if (isLive()) {
+      var t = pick(s, ["detections_today","total_detections","total","count","today"]);
+      if (t !== undefined) total = Number(t);
+      var a = pick(s, ["avg_confidence","average_confidence","mean_confidence"]);
+      if (a !== undefined) { avg = Number(a); if (avg > 1.5) avg = avg / 100; }
+      var h = pick(s, ["high_confidence","high_confidence_count"]);
+      if (h !== undefined) high = Number(h);
+    }
+    document.getElementById("statToday").textContent = total;
+    document.getElementById("statTodayNote").textContent = isLive() ? "From GET /api/analytics/summary" : curRegion().statNote;
+    document.getElementById("statSource1").textContent = isLive() ? "· Live API" : "· Sample";
+    document.getElementById("statSource1").className = "source-tag " + (isLive() ? "live" : "sample");
+    var alerts = effectiveAlerts();
+    if (isLive()) {
+      document.getElementById("statFourthLabel").textContent = "Active alerts";
+      document.getElementById("statDuplicates").textContent = alerts.filter(function(x){ return String(x.status||"active").toLowerCase() !== "resolved"; }).length;
+      document.getElementById("statFourthNote").textContent = "From GET /api/alerts · " + (pick(s, ["unique_plates","unique_vehicles"]) !== undefined ? pick(s, ["unique_plates","unique_vehicles"]) + " unique plates in summary" : "summary + alerts endpoints");
+    } else {
+      document.getElementById("statFourthLabel").textContent = "Duplicates blocked";
+      document.getElementById("statDuplicates").textContent = curRegion().duplicates;
+      document.getElementById("statFourthNote").textContent = "Same plate + camera within 30s";
+    }
+    document.getElementById("statAvg").innerHTML = total ? Math.round(avg * 100) + "<small>%</small>" : "—";
+    document.getElementById("statHigh").innerHTML = high + "<small> / " + (total || dets.length) + "</small>";
+    var online = curCameras().filter(function (c) { return c.online; }).length;
+    document.getElementById("onlinePill").textContent = online + " of " + curCameras().length + " cameras online · " + (isLive() ? "Live backend" : curRegion().label);
+    document.getElementById("sourcePill").textContent = isLive() ? "Live data · " + live.base : "Sample data";
+    document.getElementById("sourceDot").style.background = isLive() ? "var(--teal)" : "var(--amber)";
+  }
+
+  function chartData() {
+    if (state.chartMode === "daily") {
+      if (isLive() && live.daily && live.daily.length) return { labels: live.daily.map(function(x){return x.label;}), counts: live.daily.map(function(x){return x.count;}), source: "Live · GET /api/analytics/daily" };
+      // Sample daily: group is not available, show a single today bar honestly labelled
+      return { labels: ["25 Nov"], counts: [curDetections().length], source: "Sample · today only — daily needs live backend" };
+    }
+    if (isLive() && live.hourly && live.hourly.length) {
+      var hs = live.hourly.slice().sort(function(a,b){return a.hour-b.hour;});
+      return { labels: hs.map(function(x){return x.hour + ":00";}), counts: hs.map(function(x){return x.count;}), source: "Live · GET /api/analytics/hourly" };
+    }
+    var hours = [12, 13, 14, 15, 16, 17, 18, 19];
+    return { labels: hours.map(function(h){return h + ":00";}), counts: hours.map(function (h) { return curDetections().filter(function (d) { return d.hour === h; }).length; }), source: isLive() ? "Live feed · computed hourly" : "Sample feed" };
+  }
+  function renderChart() {
+    var data = chartData();
+    var counts = data.counts, labels = data.labels;
+    document.getElementById("chartTitle").textContent = state.chartMode === "daily" ? "Detections by day" : "Detections by hour";
+    document.getElementById("chartSource").textContent = data.source;
+    document.getElementById("chartHourlyBtn").setAttribute("aria-pressed", state.chartMode === "hourly" ? "true" : "false");
+    document.getElementById("chartDailyBtn").setAttribute("aria-pressed", state.chartMode === "daily" ? "true" : "false");
+    var max = Math.max.apply(null, counts.concat([1]));
+    var peak = counts.indexOf(Math.max.apply(null, counts));
+    var W = 300, H = 168, base = 138, top = 22, slot = W / Math.max(labels.length,1), bw = Math.min(24, slot - 8);
+    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Bar chart, peaking at ' + esc(labels[peak]) + ' with ' + counts[peak] + ' detections">';
+    [0.5, 1].forEach(function (f) { var y = base - (base - top) * f; svg += '<line class="gridline" x1="0" y1="' + y + '" x2="' + W + '" y2="' + y + '"/>'; });
+    counts.forEach(function (c, i) {
+      var h = (base - top) * (c / max);
+      var x = slot * i + (slot - bw) / 2, y = base - h;
+      svg += '<rect class="bar' + (i === peak ? " peak" : "") + '" x="' + x + '" y="' + y + '" width="' + bw + '" height="' + h + '" rx="4"/>';
+      svg += '<text class="bar-val" x="' + (x + bw / 2) + '" y="' + (y - 5) + '" text-anchor="middle">' + c + '</text>';
+      svg += '<text class="axis-label" x="' + (x + bw / 2) + '" y="' + (base + 16) + '" text-anchor="middle">' + esc(labels[i]) + '</text>';
+    });
+    svg += '<line class="gridline" x1="0" y1="' + base + '" x2="' + W + '" y2="' + base + '"/></svg>';
+    document.getElementById("chart").innerHTML = svg;
+  }
+
+  function renderAlerts() {
+    var alerts = effectiveAlerts();
+    document.getElementById("alertsCount").textContent = isLive() ? alerts.length + " from API" : alerts.length + " sample";
+    var el = document.getElementById("alertList");
+    if (!alerts.length) { el.innerHTML = '<li style="color:var(--ink-2);font-size:13.5px;padding:0 0 6px">No alerts returned by GET /api/alerts.</li>'; return; }
+    el.innerHTML = alerts.map(function(a){
+      var plate = pick(a, ["plate_text","plate","plate_number"]) || "—";
+      var reason = pick(a, ["reason","note","description","message"]) || "Alert";
+      var status = String(pick(a, ["status","state"]) || "active").toLowerCase();
+      var created = pick(a, ["created_at","timestamp","time"]) || "";
+      var id = pick(a, ["id","alert_id"]) || "";
+      return '<li class="alert-item"><div class="a-top"><span class="a-plate">' + esc(plate) + '</span><span class="badge ' + (status === "resolved" ? "resolved" : "active") + '">' + esc(status) + '</span></div>' +
+        '<p class="a-reason">' + esc(reason) + '</p>' +
+        (created ? '<p class="a-meta">' + esc(created) + (id ? ' · #' + esc(id) : '') + '</p>' : '') +
+        (isLive() && id ? '<button type="button" class="btn secondary" style="margin-top:8px;min-height:36px;padding:6px 12px" data-alert-toggle="' + esc(id) + '" data-next="' + (status === "resolved" ? "active" : "resolved") + '">' + (status === "resolved" ? "Re-open" : "Mark resolved") + ' (PATCH)</button>' : '') +
+        '</li>';
+    }).join("");
+    el.querySelectorAll("[data-alert-toggle]").forEach(function(btn){
+      btn.addEventListener("click", function(){ patchAlert(btn.getAttribute("data-alert-toggle"), btn.getAttribute("data-next")); });
+    });
+    document.getElementById("alertFormHint").textContent = isLive() ? "Live: this posts to " + live.base + "/api/alerts and refreshes the list." : "Connect to the backend first — creating an alert posts to your local FastAPI server. In sample mode nothing is sent.";
+  }
+
+  // ---- Plate tracker: track + alerts for one plate, in one result ----
+  function stepsForPlate(plate, dets) {
+    return dets.filter(function(d){ return d.plate_text === plate; }).slice().sort(function(a,b){ return a.time.localeCompare(b.time); });
+  }
+  function alertsForPlate(plate) {
+    return effectiveAlerts().filter(function(a){
+      return String(pick(a, ["plate_text","plate","plate_number"]) || "").replace(/\s+/g,"").toUpperCase() === plate;
+    });
+  }
+  function alertItemHtml(a) {
+    var plate = pick(a, ["plate_text","plate","plate_number"]) || "—";
+    var reason = pick(a, ["reason","note","description","message"]) || "Alert";
+    var status = String(pick(a, ["status","state"]) || "active").toLowerCase();
+    var created = pick(a, ["created_at","timestamp","time"]) || "";
+    var id = pick(a, ["id","alert_id"]) || "";
+    return '<li class="alert-item"><div class="a-top"><span class="a-plate">' + esc(plate) + '</span><span class="badge ' + (status === "resolved" ? "resolved" : "active") + '">' + esc(status) + '</span></div>' +
+      '<p class="a-reason">' + esc(reason) + '</p>' +
+      (created ? '<p class="a-meta">' + esc(created) + (id ? ' · #' + esc(id) : '') + '</p>' : '') +
+      (isLive() && id ? '<button type="button" class="btn secondary" style="margin-top:8px;min-height:36px;padding:6px 12px" data-alert-toggle="' + esc(id) + '" data-next="' + (status === "resolved" ? "active" : "resolved") + '">' + (status === "resolved" ? "Re-open" : "Mark resolved") + ' (PATCH)</button>' : '') +
+      '</li>';
+  }
+  function trackAlertsInner(plate) {
+    var list = alertsForPlate(plate);
+    var src = isLive() ? "GET /api/alerts · filtered by plate_text" : "Sample alerts";
+    var html = '<h3>Alerts for this plate <span class="count">' + list.length + ' · ' + src + '</span></h3>';
+    if (!list.length) {
+      html += '<p class="none">No alerts raised for <strong>' + esc(plate) + '</strong>' + (isLive() ? ' in GET /api/alerts.' : ' in the sample alert set.') + ' You can create one with the button below.</p>';
+      return html;
+    }
+    return html + '<ul class="alert-list">' + list.map(alertItemHtml).join("") + '</ul>';
+  }
+  function refreshTrackAlerts() {
+    var box = document.getElementById("trackAlerts");
+    if (!box) return;
+    box.innerHTML = trackAlertsInner(box.getAttribute("data-plate"));
+    wireTrackResult();
+  }
+  function renderTrackChips() {
+    var el = document.getElementById("trackChips");
+    if (!el) return;
+    var pool = curDetections();
+    var counts = {};
+    pool.forEach(function(d){ counts[d.plate_text] = (counts[d.plate_text] || 0) + 1; });
+    var plates = Object.keys(counts).sort(function(a,b){ return counts[b] - counts[a] || a.localeCompare(b); }).slice(0, 4);
+    if (!plates.length) plates = ["TS09EX1234", "TS08AB7777", "TS10AB1234"];
+    el.innerHTML = '<span>Plates with a track:</span>' + plates.map(function(p){
+      return '<button type="button" data-track-chip="' + esc(p) + '">' + esc(p) + (counts[p] ? ' · ' + counts[p] + ' sightings' : '') + '</button>';
+    }).join("");
+    el.querySelectorAll("[data-track-chip]").forEach(function(btn){
+      btn.addEventListener("click", function(){ loadTrajectory(btn.getAttribute("data-track-chip")); });
+    });
+  }
+  function wireTrackResult() {
+    var box = document.getElementById("trajResult");
+    if (!box) return;
+    box.querySelectorAll("[data-alert-toggle]").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        patchAlert(btn.getAttribute("data-alert-toggle"), btn.getAttribute("data-next"));
+        setTimeout(refreshTrackAlerts, 1200);
+      });
+    });
+    box.querySelectorAll("[data-match-plate]").forEach(function(btn){
+      btn.addEventListener("click", function(){ loadTrajectory(btn.getAttribute("data-match-plate")); });
+    });
+    box.querySelectorAll("[data-act]").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var plate = btn.getAttribute("data-plate");
+        if (btn.getAttribute("data-act") === "feed") {
+          state.query = plate; document.getElementById("searchInput").value = plate; renderRows();
+          document.getElementById("rows").scrollIntoView({ behavior: "smooth", block: "start" });
+        } else if (btn.getAttribute("data-act") === "watch") {
+          document.getElementById("alertPlateInput").value = plate;
+          document.getElementById("alertReasonInput").focus();
+          document.getElementById("createAlertBtn").scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      });
+    });
+  }
+  function renderTrajectorySteps(plate, steps, source, noteHtml) {
+    document.getElementById("trajSource").textContent = source;
+    var box = document.getElementById("trajResult");
+    if (!steps.length) { renderTrackNotFound(plate, []); return; }
+    var camSet = {};
+    steps.forEach(function(d){ camSet[d.camera_id] = true; });
+    var first = steps[0], last = steps[steps.length - 1];
+    var route = '<div class="route" aria-hidden="true">' + steps.map(function(d, i){
+      var cam = camById(d.camera_id);
+      return '<div class="route-node' + (i === steps.length - 1 && steps.length > 1 ? ' last' : '') + '"><div class="r-dot"></div><div class="r-cam">' + esc(cam.name) + '</div><div class="r-time">' + esc(d.time) + '</div></div>';
+    }).join("") + '</div>';
+    var list = '<ul class="traj-steps">' + steps.map(function(d, i){
+      var cam = camById(d.camera_id);
+      var badge = steps.length > 1 && i === 0 ? ' <span class="seen-badge">First seen</span>' : (steps.length > 1 && i === steps.length - 1 ? ' <span class="seen-badge last">Last seen</span>' : '');
+      return '<li><span class="traj-dot"></span><div class="t-main"><div class="t-cam">' + esc(cam.name) + ' <span style="color:var(--ink-3);font-size:12px">' + esc(d.camera_id) + '</span>' + badge + '</div><div class="t-sub">' + esc(cam.area || "") + ' · ' + pct(d.confidence) + ' confidence · ' + esc(d.event_id) + '</div></div><span class="t-time">' + esc(d.time) + '</span></li>';
+    }).join("") + '</ul>';
+    box.innerHTML = (noteHtml || '') +
+      '<div class="track-summary">' +
+        '<span class="plate big" aria-label="Plate ' + esc(plate) + '"><span class="ind">IND</span><span class="num">' + esc(plate) + '</span></span>' +
+        '<div class="track-stats">' +
+          '<div class="ts"><b>' + steps.length + '</b><span>Sighting' + (steps.length === 1 ? '' : 's') + '</span></div>' +
+          '<div class="ts"><b>' + Object.keys(camSet).length + '</b><span>Camera' + (Object.keys(camSet).length === 1 ? '' : 's') + '</span></div>' +
+          '<div class="ts"><b>' + esc(first.time) + '</b><span>First seen · ' + esc(camById(first.camera_id).name) + '</span></div>' +
+          '<div class="ts"><b>' + esc(last.time) + '</b><span>Last seen · ' + esc(camById(last.camera_id).name) + '</span></div>' +
+        '</div>' +
+      '</div>' +
+      route + list +
+      '<div class="track-alerts" id="trackAlerts" data-plate="' + esc(plate) + '">' + trackAlertsInner(plate) + '</div>' +
+      '<div class="track-actions">' +
+        '<button type="button" class="btn secondary" data-act="feed" data-plate="' + esc(plate) + '">Show in feed below</button>' +
+        '<button type="button" class="btn secondary" data-act="watch" data-plate="' + esc(plate) + '">Create alert for this plate</button>' +
+      '</div>';
+    wireTrackResult();
+  }
+  function renderTrackNotFound(plate, matches) {
+    document.getElementById("trajSource").textContent = isLive() ? "Live backend" : "Sample feed";
+    var box = document.getElementById("trajResult");
+    var html = '<span class="plate big" aria-label="Plate ' + esc(plate) + '"><span class="ind">IND</span><span class="num">' + esc(plate) + '</span></span>';
+    if (matches && matches.length) {
+      html += '<p style="margin:12px 0 0;color:var(--ink-2);font-size:14px">No exact track for <strong style="color:var(--ink)">' + esc(plate) + '</strong> — these plates match what you typed. Tap one to track it:</p>' +
+        '<div class="match-list">' + matches.map(function(p){ return '<button type="button" data-match-plate="' + esc(p) + '">' + esc(p) + '</button>'; }).join("") + '</div>';
+    } else {
+      html += '<p style="margin:12px 0 0;color:var(--ink-2);font-size:14px"><strong style="color:var(--ink)">No sightings found for ' + esc(plate) + '.</strong><br>' +
+        (isLive() ? 'The trajectory endpoint and the live feed have no record of this plate yet. Check the spelling, or try one of the plates above.' : 'This plate is not in the Hyderabad sample feed. Try one of the plates above — or connect the backend and track a plate your pipeline has actually seen.') + '</p>';
+    }
+    html += '<div class="track-alerts" id="trackAlerts" data-plate="' + esc(plate) + '">' + trackAlertsInner(plate) + '</div>';
+    box.innerHTML = html;
+    wireTrackResult();
+  }
+  function resolveLocalTrajectory(plate, opts) {
+    opts = opts || {};
+    var steps = stepsForPlate(plate, curDetections());
+    if (steps.length) {
+      renderTrajectorySteps(plate, steps, isLive() ? "Live feed · trajectory endpoint had no steps" : "Sample · " + curRegion().label);
+      if (!opts.noSync) { state.query = plate; document.getElementById("searchInput").value = plate; renderRows(); }
+      return;
+    }
+    var pool = curDetections();
+    var seen = {}, matches = [];
+    pool.forEach(function(d){ if (d.plate_text.indexOf(plate) !== -1 && !seen[d.plate_text]) { seen[d.plate_text] = true; matches.push(d.plate_text); } });
+    if (matches.length === 1) {
+      document.getElementById("trajInput").value = matches[0];
+      resolveLocalTrajectory(matches[0], opts);
+      return;
+    }
+    renderTrackNotFound(plate, matches);
+  }
+  function loadTrajectory(plateRaw, opts) {
+    opts = opts || {};
+    var plate = String(plateRaw != null ? plateRaw : document.getElementById("trajInput").value || "").replace(/\s+/g,"").toUpperCase();
+    if (!plate) { document.getElementById("trajInput").focus(); return; }
+    document.getElementById("trajInput").value = plate;
+    if (!opts.noScroll) document.getElementById("trackerPanel").scrollIntoView({ behavior: "smooth", block: "start" });
+    if (!isLive()) { resolveLocalTrajectory(plate, opts); return; }
+    document.getElementById("trajResult").innerHTML = '<p style="margin:0;color:var(--ink-2);font-size:13.5px">Tracking ' + esc(plate) + ' — calling GET /api/vehicles/' + esc(plate) + '/trajectory and filtering GET /api/alerts by plate…</p>';
+    // Refresh this plate's alerts from the live alerts endpoint in parallel
+    fetchJson("/api/alerts").then(function(data){
+      live.alerts = asArray(data, ["alerts"]); live.endpointStatus.alerts = true; renderAlerts(); refreshTrackAlerts();
+    }).catch(function(){});
+    fetchJson("/api/vehicles/" + encodeURIComponent(plate) + "/trajectory").then(function(data){
+      var arr = asArray(data, ["trajectory","sightings","steps","detections"]);
+      var steps = arr.map(function(r,i){ return normalizeDetection(r,i); });
+      if (!steps.length) { resolveLocalTrajectory(plate, opts); return; }
+      steps.sort(function(a,b){ return a.time.localeCompare(b.time); });
+      renderTrajectorySteps(plate, steps, "Live · /api/vehicles/{plate}/trajectory");
+      refreshTrackAlerts();
+      if (!opts.noSync) { state.query = plate; document.getElementById("searchInput").value = plate; renderRows(); }
+    }).catch(function(){ resolveLocalTrajectory(plate, opts); });
+  }
+
+  function renderWidget() {
+    if (isLive()) {
+      var dets = curDetections(); var cams = curCameras();
+      var online = cams.filter(function (c) { return c.online; }).length;
+      document.getElementById("wRegionLabel").textContent = "Detections · Live backend";
+      document.getElementById("wTotal").textContent = (live.summary && pick(live.summary, ["total_detections","detections_today","total"]) !== undefined) ? pick(live.summary, ["total_detections","detections_today","total"]) : dets.length;
+      document.getElementById("wCams").textContent = online + " of " + cams.length + " cameras online · live";
+      var latest = dets[0];
+      document.getElementById("wLatest").textContent = latest ? (latest.plate_text + " · " + latest.camera_id + " · " + latest.time) : "No detections yet";
+      document.getElementById("wList").innerHTML = dets.slice(0,4).map(function (d) { return '<li><span class="mono" style="font-weight:700">' + esc(d.plate_text) + '</span><span>' + esc(d.camera_id) + ' · ' + esc(d.time) + ' · ' + pct(d.confidence) + '</span></li>'; }).join("");
+      return;
+    }
+    var allDets = REGIONS.telangana.detections;
+    var allCams = REGIONS.telangana.cameras;
+    var online2 = allCams.filter(function (c) { return c.online; }).length;
+    document.getElementById("wRegionLabel").textContent = "Detections today · Hyderabad · Sample";
+    document.getElementById("wTotal").textContent = allDets.length;
+    document.getElementById("wCams").textContent = online2 + " of " + allCams.length + " cameras online · Hyderabad";
+    var latest2 = REGIONS.telangana.detections[0];
+    document.getElementById("wLatest").textContent = latest2.plate_text + " · " + latest2.camera_id + " · " + latest2.time;
+    document.getElementById("wList").innerHTML = REGIONS.telangana.detections.slice(0, 4).map(function (d) {
+      return '<li><span class="mono" style="font-weight:700">' + esc(d.plate_text) + '</span><span>' + esc(d.camera_id) + ' · ' + esc(d.time) + ' · ' + pct(d.confidence) + '</span></li>';
+    }).join("");
+  }
+
+  function renderCamPills() {
+    var wrap = document.getElementById("camPills");
+    var html = '<button type="button" data-cam="ALL" aria-pressed="' + (state.cam === "ALL") + '">All cameras</button>';
+    html += curCameras().map(function (c) { return '<button type="button" data-cam="' + esc(c.id) + '" aria-pressed="' + (state.cam === c.id) + '">' + esc(c.id) + ' · ' + esc(c.name) + '</button>'; }).join("");
+    wrap.innerHTML = html;
+    wrap.querySelectorAll("button").forEach(function (btn) {
+      btn.addEventListener("click", function () { state.cam = btn.getAttribute("data-cam"); renderCamPills(); renderRows(); });
+    });
+  }
+  function renderRegionMeta() {
+    if (isLive()) {
+      document.getElementById("regionHeading").textContent = "Live backend — real data";
+      document.getElementById("regionSub").textContent = "Showing data from " + live.base + ". Sample data is paused while live — tap “Use sample data” in the backend bar to go back.";
+    } else {
+      document.getElementById("regionHeading").textContent = curRegion().label;
+      document.getElementById("regionSub").textContent = curRegion().regionSub;
+    }
+    document.getElementById("searchInput").placeholder = "Search a plate — try " + (isLive() ? "TS09EX1234" : curRegion().searchHint);
+    document.querySelectorAll(".region-option").forEach(function (btn) {
+      btn.setAttribute("aria-pressed", btn.getAttribute("data-region") === state.region && !isLive() ? "true" : "false");
+    });
+  }
+  function renderApiBar() {
+    var st = document.getElementById("apiStatus");
+    if (live.connecting) { st.className = "api-status trying"; st.innerHTML = '<span class="dot" style="background:currentColor"></span> Connecting…'; }
+    else if (isLive()) { st.className = "api-status live"; st.innerHTML = '<span class="dot" style="background:currentColor"></span> Live · connected'; }
+    else { st.className = "api-status sample"; st.innerHTML = '<span class="dot" style="background:currentColor"></span> Sample mode'; }
+    document.getElementById("connectBtn").textContent = isLive() ? "Reconnect" : "Connect to backend";
+    document.getElementById("apiLastFetch").textContent = live.lastFetch ? ("Last fetched: " + live.lastFetch) : "";
+    document.querySelectorAll("#endpointList span").forEach(function(sp){
+      var k = sp.getAttribute("data-ep"); var v = live.endpointStatus[k];
+      sp.className = v === true ? "ok" : (v === false && live.lastFetch ? "fail" : "");
+    });
+    if (isLive()) document.getElementById("footerNote").textContent = "Live data from " + live.base + " · fetched " + live.lastFetch;
+  }
+  function renderAll() { renderRegionMeta(); renderApiBar(); renderCamPills(); renderStats(); renderRows(); renderCameras(); renderChart(); renderAlerts(); renderWidget(); renderTrackChips(); }
+
+  // ---- Live fetching ----
+  function fetchJson(path, opts) {
+    var ctrl = new AbortController();
+    var timer = setTimeout(function(){ ctrl.abort(); }, 3500);
+    var o = opts || {}; o.signal = ctrl.signal;
+    return fetch(live.base + path, o).then(function(r){
+      clearTimeout(timer);
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }).catch(function(e){ clearTimeout(timer); throw e; });
+  }
+  function connectBackend(silent) {
+    var input = document.getElementById("apiBaseInput").value.trim().replace(/\/+$/,"");
+    if (!input) input = "http://localhost:8000";
+    if (!/^https?:\/\//i.test(input)) input = "http://" + input;
+    live.base = input; live.connecting = true; renderApiBar();
+    if (!silent) document.getElementById("apiMetaText").textContent = "Trying " + live.base + " — summary, hourly, daily, cameras, detections and alerts…";
+    var jobs = [
+      ["summary", "/api/analytics/summary"],
+      ["hourly", "/api/analytics/hourly"],
+      ["daily", "/api/analytics/daily"],
+      ["cameras", "/api/analytics/cameras"],
+      ["detections", "/api/detections?limit=50&offset=0"],
+      ["alerts", "/api/alerts"]
+    ];
+    var results = {};
+    return Promise.all(jobs.map(function(j){
+      return fetchJson(j[1]).then(function(data){ results[j[0]] = data; live.endpointStatus[j[0]] = true; }).catch(function(){ live.endpointStatus[j[0]] = false; });
+    })).then(function(){
+      // Also try plain cameras list if analytics/cameras shape has no names
+      var gotAny = jobs.some(function(j){ return live.endpointStatus[j[0]]; });
+      var gotCore = live.endpointStatus.summary || live.endpointStatus.detections || live.endpointStatus.hourly;
+      live.connecting = false;
+      if (!gotCore) {
+        live.connected = false;
+        document.getElementById("apiMetaText").textContent = "Couldn't reach " + live.base + ". Start the backend with uvicorn app.main:app --reload in anpr-backend, then tap Connect again. Showing sample data meanwhile.";
+        renderAll(); return false;
+      }
+      live.connected = true; live.lastFetch = new Date().toLocaleTimeString();
+      if (results.summary) live.summary = results.summary;
+      if (results.hourly) live.hourly = normalizeHourly(results.hourly);
+      if (results.daily) live.daily = normalizeDaily(results.daily);
+      if (results.cameras) {
+        var camArr = asArray(results.cameras, ["cameras"]);
+        if (camArr.length) { live.camAnalytics = camArr; live.cameras = camArr.map(normalizeCamera); }
+      }
+      if (results.detections) live.detections = asArray(results.detections).map(normalizeDetection);
+      if (results.alerts) live.alerts = asArray(results.alerts, ["alerts"]);
+      // If cameras missing, derive from detections + known Hyderabad set
+      if (!live.cameras || !live.cameras.length) live.cameras = REGIONS.telangana.cameras;
+      state.cam = "ALL";
+      document.getElementById("apiMetaText").textContent = "Connected to " + live.base + ". Stats use /api/analytics/summary, chart uses /api/analytics/hourly & /daily, cameras use /api/analytics/cameras, feed uses /api/detections. Endpoints that returned data are highlighted above.";
+      renderAll();
+      var trackedPlate = document.getElementById("trajInput").value;
+      if (trackedPlate) loadTrajectory(trackedPlate, { noScroll: true, noSync: true });
+      return true;
+    });
+  }
+  function useSample() {
+    live.connected = false; live.connecting = false; live.summary = null; live.hourly = null; live.daily = null; live.detections = null; live.cameras = null; live.alerts = null; live.endpointStatus = {};
+    document.getElementById("apiMetaText").textContent = "Sample mode. Start the backend and tap Connect to switch stats and chart to real data.";
+    renderAll();
+  }
+  function createAlert() {
+    var plate = document.getElementById("alertPlateInput").value.replace(/\s+/g,"").toUpperCase();
+    var reason = document.getElementById("alertReasonInput").value.trim();
+    if (!isLive()) { document.getElementById("alertFormHint").textContent = "Not sent — connect to the backend first, then this will POST to /api/alerts."; return; }
+    if (!plate) { document.getElementById("alertFormHint").textContent = "Enter a plate first."; return; }
+    fetchJson("/api/alerts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plate_text: plate, reason: reason || "Watchlist", status: "active" }) })
+      .then(function(){ document.getElementById("alertFormHint").textContent = "Alert created for " + plate + ". Refreshing…"; return connectBackend(true); })
+      .catch(function(e){ document.getElementById("alertFormHint").textContent = "Create failed (" + e.message + "). Check the backend accepts {plate_text, reason} for POST /api/alerts."; });
+  }
+  function patchAlert(id, nextStatus) {
+    fetchJson("/api/alerts/" + encodeURIComponent(id), { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: nextStatus }) })
+      .then(function(){ return connectBackend(true); })
+      .catch(function(e){ document.getElementById("alertFormHint").textContent = "Update failed (" + e.message + ") for PATCH /api/alerts/" + id; });
+  }
+
+  // Controls
+  document.getElementById("searchInput").addEventListener("input", function () { state.query = this.value; renderRows(); });
+  document.getElementById("searchInput").addEventListener("keydown", function (e) { if (e.key === "Enter" && this.value.trim()) { e.preventDefault(); loadTrajectory(this.value); } });
+  document.querySelectorAll(".region-option").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      if (isLive()) useSample();
+      var next = btn.getAttribute("data-region");
+      state.region = next; state.cam = "ALL"; state.query = ""; document.getElementById("searchInput").value = ""; renderAll();
+      loadTrajectory(curRegion().searchHint, { noScroll: true, noSync: true });
+      var active = document.querySelector('.region-option[data-region="' + next + '"]');
+      if (active) active.focus({ preventScroll: true });
+    });
+  });
+  document.getElementById("connectBtn").addEventListener("click", function(){ connectBackend(false); });
+  document.getElementById("refreshBtn").addEventListener("click", function(){ if (isLive()) connectBackend(true); else connectBackend(false); });
+  document.getElementById("sampleBtn").addEventListener("click", useSample);
+  document.getElementById("chartHourlyBtn").addEventListener("click", function(){ state.chartMode = "hourly"; renderChart(); });
+  document.getElementById("chartDailyBtn").addEventListener("click", function(){ state.chartMode = "daily"; renderChart(); });
+  document.getElementById("trajBtn").addEventListener("click", function(){ loadTrajectory(); });
+  document.getElementById("trajInput").addEventListener("keydown", function(e){ if (e.key === "Enter") loadTrajectory(); });
+  document.getElementById("createAlertBtn").addEventListener("click", createAlert);
+
+  renderAll();
+  // Default track example so the tracker panel isn't empty
+  loadTrajectory(curRegion().searchHint, { noScroll: true, noSync: true });
+  // Auto-try the local backend once — silently falls back to sample if unreachable (e.g. hosted preview)
+  connectBackend(true);
+</script>
+</body>
+</html>
