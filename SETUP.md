@@ -46,7 +46,7 @@ VS Code.
 ```powershell
 cd anpr-backend
 python -m venv venv
-venv\Scripts\activate
+.\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
@@ -106,7 +106,7 @@ the backend, so do not paste these commands there. Then paste:
 
 ```powershell
 cd D:\buildathon\anpr-backend
-venv\Scripts\activate
+.\venv\Scripts\Activate.ps1
 New-Item -ItemType Directory -Force models
 Invoke-WebRequest https://huggingface.co/joker5914/yolov8n-license-plate/resolve/main/best.pt -OutFile models\yolov8-plate.pt
 python app\yolo_pipeline.py
@@ -143,14 +143,14 @@ that plate's track and its alerts together. Try `TS09EX1234` and
 Terminal 1 (backend, from `anpr-backend`):
 
 ```powershell
-venv\Scripts\activate
+.\venv\Scripts\Activate.ps1
 uvicorn app.main:app --reload
 ```
 
 Terminal 2 (pipeline, from `anpr-backend`, backend running first):
 
 ```powershell
-venv\Scripts\activate
+.\venv\Scripts\Activate.ps1
 python app\yolo_pipeline.py
 ```
 

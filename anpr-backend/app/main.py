@@ -11,8 +11,10 @@ from app.schemas import DetectionCreate, AlertCreate, AlertStatusUpdate
 from app.data import cameras
 from app.database import SessionLocal
 from app.models import Detection, Alert
+from app.pipeline_control import router as pipeline_router
 
 app = FastAPI()
+app.include_router(pipeline_router)
 
 # The dashboard is one static HTML file, opened from anywhere
 # (double-clicked locally, or hosted). Without this the browser
