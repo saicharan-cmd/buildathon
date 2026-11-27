@@ -82,29 +82,41 @@ adds sample detections for Hyderabad plates only — `TS09EX1234`,
 `TS07XY9999`, `TS13PQ2468`, `TS15MN1357` — and only runs when the
 detections table is empty, so running it twice adds nothing.
 
-## Step 5 — Start the backend
+## Step 5 — Start the backend (Terminal 1)
+
+This is Terminal 1. Paste only this, then leave it alone:
 
 ```powershell
 uvicorn app.main:app --reload
 ```
 
-Leave this terminal running. Open http://127.0.0.1:8000/ — you
+This terminal is now busy running the backend. Do NOT paste
+anything else in this terminal — Step 6 needs a different terminal.
+Leave Terminal 1 running. Open http://127.0.0.1:8000/ — you
 should see `{"message":"Welcome to ANPR Backend!","status":"Running"}`.
 http://127.0.0.1:8000/docs lists every endpoint.
 http://127.0.0.1:8000/api/cameras should list exactly 8 Hyderabad
 cameras, 7 online (HYD03 Kukatpally offline).
 
-## Step 6 — Get the plate model + run the pipeline
+## Step 6 — Get the plate model + run the pipeline (Terminal 2)
 
 Open a **second** terminal in VS Code ( Terminal menu > New
-Terminal ), then paste:
+Terminal ). This is Terminal 2 — Terminal 1 is still busy running
+the backend, so do not paste these commands there. Then paste:
 
 ```powershell
 cd D:\buildathon\anpr-backend
 venv\Scripts\activate
+New-Item -ItemType Directory -Force models
 Invoke-WebRequest https://huggingface.co/joker5914/yolov8n-license-plate/resolve/main/best.pt -OutFile models\yolov8-plate.pt
 python app\yolo_pipeline.py
 ```
+
+The `models` folder is **not** in the repo, so you must create it
+first with the `New-Item` line above. Without it, the download
+fails with `Could not find a part of the path
+'...\models\yolov8-plate.pt'` and the pipeline then says
+`YOLO model file not found`.
 
 The model is ~6 MB and is **not** in the repo — this download is the
 only way to get it. The pipeline uses your laptop webcam by default
@@ -153,6 +165,10 @@ running. Stop a terminal with `Ctrl + C`.
 - `pip install ultralytics` stalls — it is downloading the CUDA
   torch wheel. Cancel it, install CPU torch first (see the PyTorch
   site, CPU wheel), then `pip install -r requirements.txt` again.
+- `Could not find a part of the path '...\models\yolov8-plate.pt'`
+  — the `models` folder does not exist yet. In Terminal 2, run
+  `New-Item -ItemType Directory -Force models` first (Step 6),
+  then run the `Invoke-WebRequest` line again.
 - `yolov8n.pt has no plate class` — the model file is wrong. You
   need the `best.pt` from Step 6 at `models\yolov8-plate.pt`.
 - Dashboard says "Couldn't reach" the backend — the backend is not
